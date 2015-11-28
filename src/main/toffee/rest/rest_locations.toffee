@@ -15,31 +15,6 @@ express         = require "express"
 mongoose        = require "mongoose"
 mongo           = require("mongodb").MongoClient
 module.exports  =
-    mock: (Location) ->
-        url = "mongodb://localhost:27017/test"
-        err, db = mongo.connect! url
-        collection = db.collection('locations')
-        err, results = collection.deleteMany! {}
-        redHatAmphitheater = new Location(
-            countryCode: "USA"
-            regionCode : "NC"
-            postalCode : "27601"
-            city       : "Raleigh"
-            street     : "S McDowell St"
-            number     : "500"
-        )
-        err = redHatAmphitheater.save!
-        debug "register() err=#{err}"
-        redHatHeadquarters = new Location(
-            countryCode: "USA",
-            regionCode : "NC",
-            postalCode : "27601",
-            city       : "Raleigh",
-            street     : "E Davie Street",
-            number     : "100"
-        )
-        err = redHatHeadquarters.save!
-        debug "register() err=#{err}"
     ###*
     Registers all handlers for this scope and all sub-scopes for the supported HTTP methods.
     The given app needs to allow for instance:
@@ -59,8 +34,6 @@ module.exports  =
         module.exports.Location = mongoose.model("locations", Schema)
         debug "register() Schema=#{Schema}"
         debug "register() module.exports.Location=#{module.exports.Location}"
-
-        this.mock(module.exports.Location)
 
         ###register all handlers for all scopes and supported HTTP methods###
         router.route("/locations"    ).get    this.getLocations
