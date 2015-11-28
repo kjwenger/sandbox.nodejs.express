@@ -1,0 +1,48 @@
+###global JSON,module,require,console,process,__dirname###
+
+###*
+Application rooting in Express allowing for further servers/services to be added.
+
+@class app
+@module module
+@module express
+@see <a href="http://nodejs.org/api/modules.html">Node.JS Modules</a>
+@date November 28, 2015
+@author <a href="mailto:kjwenger@yahoo.com">Klaus Wenger</a>
+###
+
+debug       = require("debug")("app")
+                                    # Require all reusable constants for consistency
+constants   = require "../../../sandbox.nodejs/target/app/constants"
+                                    # Require all reusable code for consistency
+utils       = require "../../../sandbox.nodejs/target/app/utils"
+express     = require "express"     # require the Express application framework
+url         = require "url"         # require Express URL handling
+util        = require "util"        # require Express utilities
+http        = require "http"        # require Express HTTP protocol support
+querystring = require "querystring" # require Express URL query string parsing
+bodyParser  = require "body-parser" # require Express HTTP request body parsing
+Routes      = require "named-routes"
+rest        = require "./rest/rest" # require the root of all RESTful Web Services
+
+# instantiate the app framework and initialize it
+app = express()
+router = new Routes()
+
+app.STATIC_FILES_TEMP = __dirname + "/temp";
+app.use "/", express.static __dirname
+app.use bodyParser.urlencoded(extended: true)
+app.use bodyParser.json()
+router.extendExpress(app);
+router.registerAppHelpers(app);
+
+# register RESTful Web Services
+rest.register app                   # register app with RESTful Web Service handlers
+
+# allow shutting down the app remotely
+app.post "/shutdown", () ->
+    debug 'server.post("/shutdown").callback()'
+    process.exit 0
+
+# start dispatch loop
+app.listen constants.PORT

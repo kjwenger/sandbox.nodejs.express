@@ -1,0 +1,106 @@
+###global JSON,module,require,console,process###
+
+###*
+Root of all RESTful Web Service scopes for locations CRUDE.
+
+@class rest
+@date November 28, 2015
+@author <a href="mailto:kjwenger@yahoo.com">Klaus Wenger</a>
+###
+
+debug           = require("debug")("rest_locations")
+constants       = require "../../../../sandbox.nodejs/target/app/constants"
+location        = require "../../../../sandbox.nodejs/target/app/model/location"
+express         = require "express"
+mongoose        = require "mongoose"
+mongo           = require("mongodb").MongoClient
+module.exports  =
+    mock: (Location) ->
+        url = "mongodb://localhost:27017/test"
+        err, db = mongo.connect! url
+        collection = db.collection('locations')
+        err, results = collection.deleteMany! {}
+        redHatAmphitheater = new Location(
+            countryCode: "USA"
+            regionCode : "NC"
+            postalCode : "27601"
+            city       : "Raleigh"
+            street     : "S McDowell St"
+            number     : "500"
+        )
+        err = redHatAmphitheater.save!
+        debug "register() err=#{err}"
+        redHatHeadquarters = new Location(
+            countryCode: "USA",
+            regionCode : "NC",
+            postalCode : "27601",
+            city       : "Raleigh",
+            street     : "E Davie Street",
+            number     : "100"
+        )
+        err = redHatHeadquarters.save!
+        debug "register() err=#{err}"
+    ###*
+    Registers all handlers for this scope and all sub-scopes for the supported HTTP methods.
+    The given app needs to allow for instance:
+    <code>app.get("/scope", function(req, res, next) { res.write("something") })</code>.
+    @member rest_locations
+    @param {Object} app Server or application framework that supports (for given HTTP methods and scopes) the registration of handlers.
+    @param {Object} path Path passed down from parent handler to be prepended.
+    ###
+    register: (app, path) ->
+        debug "register() path=#{path}"
+        path = path or ""
+
+        router = express.Router()
+        debug "register() router=#{router}"
+
+        Schema = new mongoose.Schema(location.schema)
+        module.exports.Location = mongoose.model("locations", Schema)
+        debug "register() Schema=#{Schema}"
+        debug "register() module.exports.Location=#{module.exports.Location}"
+
+        this.mock(module.exports.Location)
+
+        ###register all handlers for all scopes and supported HTTP methods###
+        router.route("/locations"    ).get    this.getLocations
+        router.route("/locations"    ).post   this.postLocation
+        router.route('/locations/:id').get    this.getLocation
+        router.route("/locations/:id").put    this.putLocation
+        router.route('/locations/:id').delete this.deleteLocation
+
+        app.use path, router
+
+        return this
+    getLocations: (req, res) ->
+        err, locations = module.exports.Location.find!
+        debug "getLocations() err=#{err}"
+        debug "getLocations() locations=#{locations}"
+        if err then res.status(404).send(err) else res.status(200).json(locations)
+    postLocation: (req, res) ->
+        location = new module.exports.Location(req.body)
+        err = location.save!
+        debug "postLocation() err=#{err}"
+        debug "postLocation() location=#{location}"
+        if err then res.status(500).send(err) else res.status(201).send(location)
+    getLocation: (req, res) ->
+        err, location = module.exports.Location.findOne! _id: req.params.id
+        debug "getLocation() err=#{err}"
+        debug "getLocation() location=#{location}"
+        if err then res.status(404).send(err) else res.status(200).json(location)
+    putLocation: (req, res) ->
+        err, location = Location.findOne! _id: req.params.id
+        debug "putLocation() err=#{err}"
+        debug "putLocation() location=#{location}"
+        if err then res.status(500).send(err)
+        for property, value of req.body
+            location[property] = value
+        err = location.save!
+        debug "putLocation() err=#{err}"
+        debug "putLocation() location=#{location}"
+        if err then res.status(500).send(err) else res.status(200).json(location)
+    deleteLocation: (req, res) ->
+        err, location = Location.remove! _id: req.params.id
+        debug "deleteLocation() err=#{err}"
+        debug "deleteLocation() location=#{location}"
+        if err then res.status(500).send(err) else res.status(200).json(location);
